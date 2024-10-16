@@ -16,79 +16,76 @@ async function saveStore(store) {
     await chrome.storage.local.set(store);
 }
 
-let nidPromise = null;
-let nidPromiseResolve = null;
-let nidPromiseReject = null;
-
-// TODO: Check if the "open in incognito" button will work.
-
-const NCR_URL = 'https://www.google.com/ncr';
-// We mark our requests to differentiate between them and regular requests
+// We mark our requests to differentiate them from regular ones
 const EXTENSION_HASH_MARKER = '#' + chrome.runtime.id;
+
+let headersPromise = null;
+let headersPromiseResolve = null;
+let headersPromiseReject = null;
+
+async function fetchNewNIDCookie() {
+    // For simplicity, only one fetch at a time
+    while (headersPromise)
+        await headersPromise;
+
+    headersPromise = new Promise((resolve, reject) => {
+        headersPromiseResolve = resolve;
+        headersPromiseReject = reject;
+    });
+
+    fetch('https://www.google.com/ncr' + EXTENSION_HASH_MARKER, {
+        credentials: 'omit', // Anonymous request, don't send current cookies
+    }).catch((err) => { headersPromiseReject(err); });
+
+    let headers = await headersPromise;
+
+    for (let h of headers) {
+        if (h.name != 'set-cookie')
+            continue;
+        let match = /NID=([^; ]*)/.exec(h.value);
+        if (!match)
+            continue;
+
+        return match[1];
+    }
+
+    throw new Error('NID cookie not found');
+}
 
 chrome.webRequest.onHeadersReceived.addListener(
     async function(details) {
         if (URL.parse(details.url).hash != EXTENSION_HASH_MARKER)
             return;
 
-        function parseNIDFromHeaders(details) {
-            let set_cookie = details.responseHeaders.find(x => x.name == 'set-cookie');
-            let matches = /NID=([^; ]*)/.exec(set_cookie.value);
-            return matches[1];
-        }
-
-        let nid;
-
-        try {
-            nid = parseNIDFromHeaders(details);
-        }
-        catch (error) {
-            nidPromiseReject(error);
-        }
-
-        let store = await getStore();
-
-        store.next_nid = nid;
-        nidPromiseResolve();
-        nidPromise = null;
-        await saveStore(store);
-
+        headersPromiseResolve(details.responseHeaders);
+        headersPromise = null;
     },
-    { urls: [NCR_URL] },
+    {urls: ['https://www.google.com/ncr']},
     ['responseHeaders', 'extraHeaders'],
 );
 
-async function fetchNextNIDCookie() {
-    if (nidPromise)
-        await nidPromise;
-
-    nidPromise = new Promise((resolve, reject) => {
-        nidPromiseResolve = resolve;
-        nidPromiseReject = reject;
-    });
-
-    fetch(NCR_URL + EXTENSION_HASH_MARKER, {
-        credentials: 'omit', // Make an anonymous request, without sending current cookies
-    }).catch((err) => { nidPromiseReject(err); });
-
-    await nidPromise;
-}
-
 async function getNIDCookie() {
     let store = await getStore();
+    let nid;
 
-    while (store.next_nid === null) {
-        console.log('Fetching cookie for now');
-        await fetchNextNIDCookie();
+    if (store.next_nid !== null) {
+        console.log('Using prefetched cookie');
+        nid = store.next_nid;
+        store.next_nid = null;
+        saveStore(store);
     }
+    else {
+        console.log('Fetching cookie for now');
+        nid = await fetchNewNIDCookie();
+    }
+    console.log('Cookie:', nid);
 
-    let nid = store.next_nid;
-    store.next_nid = null;
-    console.log('Using cookie', nid);
-
-    saveStore(store); // In the background
-    console.log('Fetching cookie for later');
-    fetchNextNIDCookie(); // In the background
+    console.log('Prefetching cookie for later');
+    // In the background
+    fetchNewNIDCookie().then((nid) => {
+        store.next_nid = nid;
+        saveStore(store);
+    });
 
     return nid;
 }
@@ -96,24 +93,20 @@ async function getNIDCookie() {
 async function doNCR() {
     let cookie = await chrome.cookies.get({name: 'NID', url: 'https://www.google.com'});
 
-    if (cookie !== null) {
-        console.log('Cookie already set', cookie.value);
+    if (cookie !== null)
         return;
-    }
-
-    console.info('No cookie!');
 
     let nid = await getNIDCookie();
 
     await chrome.cookies.set({
-        domain: '.google.com',
-        httpOnly: true,
         name: 'NID',
-        path: '/',
-        sameSite: 'unspecified',
-        secure: true,
-        url: 'https://www.google.com',
         value: nid,
+        url: 'https://www.google.com',
+        domain: '.google.com',
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'no_restriction',
     });
 }
 
@@ -133,7 +126,6 @@ chrome.windows.onCreated.addListener(async (window) => {
     }
     catch (error) {
         console.error(error);
-        return;
     }
     finally {
         working = false;
