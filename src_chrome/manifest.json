@@ -1,0 +1,24 @@
+{
+    "manifest_version": 3,
+    "name": "Incognito NCR",
+    "description": "No Country Redirect in Incognito windows",
+    "version": "1.0",
+    "author": "Andrey Leshenko",
+
+    "background": {
+        "service_worker": "service_worker.js",
+        "type": "module"
+    },
+
+    "incognito": "split",
+
+    "host_permissions": [
+        "https://www.google.com/ncr"
+    ],
+
+    "permissions": [
+        "storage",
+        "cookies",
+        "webRequest"
+    ]
+}
