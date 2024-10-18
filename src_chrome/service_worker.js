@@ -11,29 +11,33 @@ async function saveStore(store) {
     await chrome.storage.local.set(store);
 }
 
-// We mark our requests to differentiate them from regular ones
-const EXTENSION_HASH_MARKER = '#' + chrome.runtime.id;
-
-let headersPromise = null;
-let headersPromiseResolve = null;
-let headersPromiseReject = null;
 
 async function fetchNewNIDCookie() {
-    // For simplicity, only one fetch at a time
-    while (headersPromise) {
-        await headersPromise;
-    }
+    let headers = await new Promise((resolve, reject) => {
+        // We mark our requests to differentiate them from regular ones
+        let requestId = (Math.random() + 1).toString(36).substring(2)
+        let marker = `#${chrome.runtime.id}-${requestId}`;
 
-    headersPromise = new Promise((resolve, reject) => {
-        headersPromiseResolve = resolve;
-        headersPromiseReject = reject;
+        function onHeaders(details) {
+            if (URL.parse(details.url).hash != marker) return;
+
+            chrome.webRequest.onHeadersReceived.removeListener(onHeaders);
+            resolve(details.responseHeaders);
+        }
+
+        chrome.webRequest.onHeadersReceived.addListener(
+            onHeaders,
+            {urls: ['https://www.google.com/ncr']},
+            ['responseHeaders', 'extraHeaders'],
+        );
+
+        fetch('https://www.google.com/ncr' + marker, {
+            credentials: 'omit', // Anonymous request, don't send current cookies
+        }).catch(e => {
+            chrome.webRequest.onHeadersReceived.removeListener(onHeaders);
+            reject(e);
+        });
     });
-
-    fetch('https://www.google.com/ncr' + EXTENSION_HASH_MARKER, {
-        credentials: 'omit', // Anonymous request, don't send current cookies
-    }).catch(headersPromiseReject);
-
-    let headers = await headersPromise;
 
     for (let h of headers) {
         if (h.name != 'set-cookie') continue;
@@ -44,18 +48,8 @@ async function fetchNewNIDCookie() {
     }
 
     throw new Error('NID cookie not found');
+
 }
-
-chrome.webRequest.onHeadersReceived.addListener(
-    async function(details) {
-        if (URL.parse(details.url).hash != EXTENSION_HASH_MARKER) return;
-
-        headersPromiseResolve(details.responseHeaders);
-        headersPromise = null;
-    },
-    {urls: ['https://www.google.com/ncr']},
-    ['responseHeaders', 'extraHeaders'],
-);
 
 async function getNIDCookie() {
     let store = await storePromise;
