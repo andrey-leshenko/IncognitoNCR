@@ -20,8 +20,9 @@ let headersPromiseReject = null;
 
 async function fetchNewNIDCookie() {
     // For simplicity, only one fetch at a time
-    while (headersPromise)
+    while (headersPromise) {
         await headersPromise;
+    }
 
     headersPromise = new Promise((resolve, reject) => {
         headersPromiseResolve = resolve;
@@ -35,11 +36,9 @@ async function fetchNewNIDCookie() {
     let headers = await headersPromise;
 
     for (let h of headers) {
-        if (h.name != 'set-cookie')
-            continue;
+        if (h.name != 'set-cookie') continue;
         let match = /NID=([^; ]*)/.exec(h.value);
-        if (!match)
-            continue;
+        if (!match) continue;
 
         return match[1];
     }
@@ -49,8 +48,7 @@ async function fetchNewNIDCookie() {
 
 chrome.webRequest.onHeadersReceived.addListener(
     async function(details) {
-        if (URL.parse(details.url).hash != EXTENSION_HASH_MARKER)
-            return;
+        if (URL.parse(details.url).hash != EXTENSION_HASH_MARKER) return;
 
         headersPromiseResolve(details.responseHeaders);
         headersPromise = null;
@@ -88,8 +86,7 @@ async function getNIDCookie() {
 async function doNCR() {
     let cookie = await chrome.cookies.get({name: 'NID', url: 'https://www.google.com'});
 
-    if (cookie !== null)
-        return;
+    if (cookie !== null) return;
 
     let nid = await getNIDCookie();
 
@@ -108,12 +105,10 @@ async function doNCR() {
 let working = false;
 
 chrome.windows.onCreated.addListener(async (window) => {
-    if (!window.incognito)
-        return;
+    if (!window.incognito) return;
 
     // No need to run multiple checks in parallel
-    if (working)
-        return;
+    if (working) return;
 
     working = true;
     try {
