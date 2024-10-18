@@ -1,16 +1,11 @@
 // NOTE: When inspecting the incognito service worker, to reset the session we
 // need to close all incognito windows AND the incognito service worker devtools.
 
-let getStore = (() => {
+let storePromise = chrome.storage.local.get().then((items) => {
     let store = { next_nid: null };
-    let initStore = chrome.storage.local.get().then((items) => {
-        Object.assign(store, items);
-    });
-    return async () => {
-        await initStore;
-        return store;
-    }
-})();
+    Object.assign(store, items);
+    return store;
+});
 
 async function saveStore(store) {
     await chrome.storage.local.set(store);
@@ -65,7 +60,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 );
 
 async function getNIDCookie() {
-    let store = await getStore();
+    let store = await storePromise;
     let nid;
 
     if (store.next_nid !== null) {
