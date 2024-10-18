@@ -31,7 +31,7 @@ async function fetchNewNIDCookie() {
 
     fetch('https://www.google.com/ncr' + EXTENSION_HASH_MARKER, {
         credentials: 'omit', // Anonymous request, don't send current cookies
-    }).catch((err) => { headersPromiseReject(err); });
+    }).catch(headersPromiseReject);
 
     let headers = await headersPromise;
 
