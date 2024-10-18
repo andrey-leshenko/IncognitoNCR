@@ -76,6 +76,8 @@ async function getNIDCookie() {
     console.log('Prefetching cookie for later');
     // In the background
     fetchNewNIDCookie().then((nid) => {
+        // next_id might be asynchronously updated when we reach this part but
+        // it doesn't hurt to overwrite next_nid with a fresh nid.
         store.next_nid = nid;
         saveStore(store);
     });
