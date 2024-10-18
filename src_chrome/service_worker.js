@@ -37,6 +37,11 @@ async function fetchNewNIDCookie() {
             chrome.webRequest.onHeadersReceived.removeListener(onHeaders);
             reject(e);
         });
+
+        setTimeout(() => {
+            chrome.webRequest.onHeadersReceived.removeListener(onHeaders);
+            reject("Timeout");
+        }, 30_000)
     });
 
     for (let h of headers) {
