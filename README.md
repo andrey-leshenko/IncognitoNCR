@@ -6,6 +6,12 @@ This behavior can be disabled by browsing to https://google.com/ncr (which stand
 
 This extension solves the problem by automatically enabling NCR mode in Incognito windows.
 
+## Installing
+
+You can install the extension from the Chrome Web Store [here](https://chromewebstore.google.com/detail/incognito-ncr/npmlhcdgleiibcaeeegcpekjcallhpii).
+
+Alternatively you can clone the code and load the extension manually.
+
 ## Implementation
 
 Browsing to https://google.com/ncr sets the Google NID cookie to a new value.
