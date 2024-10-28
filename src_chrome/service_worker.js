@@ -84,10 +84,11 @@ async function getNIDCookie() {
     return nid;
 }
 
-async function doNCR() {
-    let cookie = await chrome.cookies.get({name: 'NID', url: 'https://www.google.com'});
-
-    if (cookie !== null) return;
+async function _doNCR(override) {
+    if (!override) {
+        let cookie = await chrome.cookies.get({name: 'NID', url: 'https://www.google.com'});
+        if (cookie !== null) return;
+    }
 
     let nid = await getNIDCookie();
 
@@ -105,15 +106,13 @@ async function doNCR() {
 
 let working = false;
 
-chrome.windows.onCreated.addListener(async (window) => {
-    if (!window.incognito) return;
-
+async function doNCR(override) {
     // No need to run multiple checks in parallel
     if (working) return;
 
     working = true;
     try {
-        await doNCR();
+        await _doNCR(override);
     }
     catch (error) {
         console.error(error);
@@ -121,4 +120,15 @@ chrome.windows.onCreated.addListener(async (window) => {
     finally {
         working = false;
     }
-});
+}
+
+if (chrome.extension.inIncognitoContext) {
+    chrome.windows.onCreated.addListener(async (window) => {
+        await doNCR(false);
+    });
+
+    chrome.runtime.onInstalled.addListener(async (details) => {
+        console.log('Setting cookie on first run');
+        await doNCR(true);
+    });
+}
