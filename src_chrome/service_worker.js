@@ -132,3 +132,10 @@ if (chrome.extension.inIncognitoContext) {
         await doNCR(true);
     });
 }
+
+chrome.extension.isAllowedIncognitoAccess()
+    .then((enabled) => {
+        if (!enabled) {
+            chrome.action.setBadgeText({text: "Off"});
+        }
+    });
