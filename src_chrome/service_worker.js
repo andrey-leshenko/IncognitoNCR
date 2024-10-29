@@ -15,7 +15,7 @@ async function saveStore(store) {
 async function fetchNewNIDCookie() {
     let headers = await new Promise((resolve, reject) => {
         // We mark our requests to differentiate them from regular ones
-        let requestId = (Math.random() + 1).toString(36).substring(2)
+        let requestId = (Math.random() + 1).toString(36).substring(2);
         let marker = `#${chrome.runtime.id}-${requestId}`;
 
         function onHeaders(details) {
@@ -41,7 +41,7 @@ async function fetchNewNIDCookie() {
         setTimeout(() => {
             chrome.webRequest.onHeadersReceived.removeListener(onHeaders);
             reject("Timeout");
-        }, 30_000)
+        }, 30_000);
     });
 
     for (let h of headers) {
