@@ -1,0 +1,37 @@
+{
+    "manifest_version": 3,
+    "name": "Incognito NCR",
+    "description": "Google NCR (No Country Redirect) in Incognito windows",
+    "version": "1.0",
+    "author": "Andrey Leshenko",
+
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "{0d12a391-2a78-41f5-b85d-b01b9c30d688}"
+        }
+    },
+
+    "icons": {
+        "16": "images/icon16.png",
+        "32": "images/icon32.png",
+        "48": "images/icon48.png",
+        "128": "images/icon128.png"
+    },
+
+    "background": {
+        "scripts": ["service_worker.js"],
+        "type": "module"
+    },
+
+    "incognito": "spanning",
+
+    "host_permissions": [
+        "https://www.google.com/ncr"
+    ],
+
+    "permissions": [
+        "storage",
+        "cookies",
+        "webRequest"
+    ]
+}
