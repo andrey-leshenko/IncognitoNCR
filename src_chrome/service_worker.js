@@ -135,7 +135,10 @@ if (chrome.extension.inIncognitoContext) {
 
 chrome.extension.isAllowedIncognitoAccess()
     .then((enabled) => {
-        if (!enabled) {
+        if (enabled) {
+            chrome.action.disable();
+        }
+        else {
             chrome.action.setBadgeText({text: "Off"});
         }
     });

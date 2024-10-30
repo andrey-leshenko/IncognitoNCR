@@ -144,7 +144,10 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 chrome.extension.isAllowedIncognitoAccess()
     .then((enabled) => {
-        if (!enabled) {
+        if (enabled) {
+            chrome.action.disable();
+        }
+        else {
             chrome.action.setBadgeText({text: "Off"});
         }
     });

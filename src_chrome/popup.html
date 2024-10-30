@@ -8,14 +8,6 @@
           font-size: 100%;
       }
 
-      .status-line {
-          white-space: nowrap;
-      }
-
-      .status {
-          font-weight: bold;
-      }
-
       .explanation {
           font-size: 0.9em;
           margin-top: 1em;
@@ -24,20 +16,11 @@
     </style>
   </head>
   <body>
-    <div id="msg-enabled" hidden>
-      <div class="status-line">
-        Status: <span class="status">Enabled</span>
-      </div>
+    Status: <b>Disabled</b>
+    <div class="explanation">
+      The extension needs to be enabled in Incognito mode to work.<br>
+      Enable it by checking <i>Allow in Incognito</i> in the <a id="options-link" href="settings">extension settings</a>.
     </div>
-    <div id="msg-disabled" hidden>
-      <div class="status-line">
-        Status: <span class="status">Disabled</span>
-      </div>
-      <div class="explanation">
-        The extension needs to be enabled in Incognito mode to work.<br>
-        Enable it by checking <i>Allow in Incognito</i> in the <a id="options-link" href="settings">extension settings</a>.
-      </div>
-    </div>
-    <script src="popup.js" type="module"></script>
+    <script src="popup.js"></script>
   </body>
 </html>
