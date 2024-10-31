@@ -8,7 +8,8 @@ This extension solves the problem by automatically enabling NCR mode in Incognit
 
 ## Installing
 
-You can install the extension from the Chrome Web Store [here](https://chromewebstore.google.com/detail/incognito-ncr/npmlhcdgleiibcaeeegcpekjcallhpii).
+- Chrome extension is available on the Chrome Web Store [here](https://chromewebstore.google.com/detail/incognito-ncr/npmlhcdgleiibcaeeegcpekjcallhpii).
+- Firefox version is available on Mozilla Add-ons [here](https://addons.mozilla.org/en-US/firefox/addon/incognito-ncr/).
 
 Alternatively you can clone the code and load the extension manually.
 
