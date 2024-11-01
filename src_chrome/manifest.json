@@ -21,7 +21,7 @@
         "default_popup": "popup.html"
     },
 
-    "incognito": "split",
+    "incognito": "spanning",
 
     "host_permissions": [
         "https://www.google.com/ncr"
@@ -30,6 +30,7 @@
     "permissions": [
         "storage",
         "cookies",
-        "webRequest"
+        "webRequest",
+        "management"
     ]
 }

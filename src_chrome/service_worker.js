@@ -84,15 +84,16 @@ async function getNIDCookie() {
     return nid;
 }
 
-async function _doNCR(override) {
+async function __doNCR(override, storeId) {
     if (!override) {
-        let cookie = await chrome.cookies.get({name: 'NID', url: 'https://www.google.com'});
+        let cookie = await chrome.cookies.get({storeId: storeId, name: 'NID', url: 'https://www.google.com'});
         if (cookie !== null) return;
     }
 
     let nid = await getNIDCookie();
 
     await chrome.cookies.set({
+        storeId: storeId,
         name: 'NID',
         value: nid,
         url: 'https://www.google.com',
@@ -102,6 +103,17 @@ async function _doNCR(override) {
         secure: true,
         sameSite: 'no_restriction',
     });
+}
+
+async function _doNCR(override) {
+    let stores = await chrome.cookies.getAllCookieStores();
+
+    // Unlike Firefox, Chrome cookie store objects don't have an "incognito"
+    // field. However, MDN claims that in Chrome the incognito store will always
+    // have the id '1'
+    for (let store of stores.filter(s => s.id == '1')) {
+        await __doNCR(override, store.id);
+    }
 }
 
 let working = false;
@@ -122,16 +134,27 @@ async function doNCR(override) {
     }
 }
 
-if (chrome.extension.inIncognitoContext) {
-    chrome.windows.onCreated.addListener(async (window) => {
-        await doNCR(false);
-    });
 
-    chrome.runtime.onInstalled.addListener(async (details) => {
-        console.log('Setting cookie on first run');
-        await doNCR(true);
-    });
-}
+chrome.windows.onCreated.addListener(async (window) => {
+    if (!window.incognito) return;
+    await doNCR(false);
+});
+
+chrome.runtime.onInstalled.addListener(async (details) => {
+    if (details.reason !== 'install' && details.reason !== 'update') return;
+    console.log('Resetting cookie after install/update');
+    await doNCR(true);
+});
+
+// Detect when the extension has been enabled in Incognito mode. Annoyingly,
+// there is a difference in behavior between packed and unpacked extensions.
+// Unpacked extensions will trigger onInstalled with reason 'update', while
+// packed extensions will trigger the handler below.
+chrome.management.onEnabled.addListener(async (details) => {
+    if (details.id !== chrome.runtime.id) return;
+    console.log('Resetting cookie after settings changed');
+    await doNCR(true);
+});
 
 chrome.extension.isAllowedIncognitoAccess()
     .then((enabled) => {

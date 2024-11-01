@@ -138,7 +138,18 @@ chrome.windows.onCreated.addListener(async (window) => {
 });
 
 chrome.runtime.onInstalled.addListener(async (details) => {
-    console.log('Setting cookie on first run');
+    if (details.reason !== 'install' && details.reason !== 'update') return;
+    console.log('Resetting cookie after install/update');
+    await doNCR(true);
+});
+
+// Detect when the extension has been enabled in Incognito mode. Annoyingly,
+// there is a difference in behavior between packed and unpacked extensions.
+// Unpacked extensions will trigger onInstalled with reason 'update', while
+// packed extensions will trigger the handler below.
+chrome.management.onEnabled.addListener(async (details) => {
+    if (details.id !== chrome.runtime.id) return;
+    console.log('Resetting cookie after settings changed');
     await doNCR(true);
 });
 

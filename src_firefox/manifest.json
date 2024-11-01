@@ -36,6 +36,7 @@
     "permissions": [
         "storage",
         "cookies",
-        "webRequest"
+        "webRequest",
+        "management"
     ]
 }
