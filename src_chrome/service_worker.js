@@ -2,7 +2,7 @@
 // need to close all incognito windows AND the incognito service worker devtools.
 
 let storePromise = chrome.storage.local.get().then((items) => {
-    let store = { next_nid: null };
+    let store = { next_nid: null, allowed_in_incognito: false };
     Object.assign(store, items);
     return store;
 });
@@ -140,28 +140,29 @@ chrome.windows.onCreated.addListener(async (window) => {
     await doNCR(false);
 });
 
-chrome.runtime.onInstalled.addListener(async (details) => {
-    if (details.reason !== 'install' && details.reason !== 'update') return;
-    console.log('Resetting cookie after install/update');
-    await doNCR(true);
-});
+async function permissionCheck() {
+    let allowed = await chrome.extension.isAllowedIncognitoAccess();
 
-// Detect when the extension has been enabled in Incognito mode. Annoyingly,
-// there is a difference in behavior between packed and unpacked extensions.
-// Unpacked extensions will trigger onInstalled with reason 'update', while
-// packed extensions will trigger the handler below.
-chrome.management.onEnabled.addListener(async (details) => {
-    if (details.id !== chrome.runtime.id) return;
-    console.log('Resetting cookie after settings changed');
-    await doNCR(true);
-});
+    if (allowed) {
+        chrome.action.disable();
+    }
+    else {
+        chrome.action.setBadgeText({text: "Off"});
+    }
 
-chrome.extension.isAllowedIncognitoAccess()
-    .then((enabled) => {
-        if (enabled) {
-            chrome.action.disable();
+    let store = await storePromise;
+
+    if (allowed != store.allowed_in_incognito) {
+        store.allowed_in_incognito = allowed;
+        saveStore(store);
+
+        // When installing the extension, we want it to work immediately,
+        // without needing to close all Incognito windows.
+        if (allowed) {
+            console.log('Resetting cookie after being enabled');
+            await doNCR(true);
         }
-        else {
-            chrome.action.setBadgeText({text: "Off"});
-        }
-    });
+    }
+}
+
+permissionCheck();
