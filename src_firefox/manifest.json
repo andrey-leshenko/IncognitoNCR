@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Incognito NCR",
     "description": "Google NCR (No Country Redirect) in Incognito windows",
-    "version": "1.2",
+    "version": "1.3",
     "author": "Andrey Leshenko",
 
     "browser_specific_settings": {
