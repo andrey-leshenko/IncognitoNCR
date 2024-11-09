@@ -8,6 +8,30 @@ async function saveStore(store) {
     await chrome.storage.local.set(store);
 }
 
+// NOTE: In a previous version we registered an onHeadersReceived listener
+// just-in-time for each request. Turns out that on Chrome (130.0.6723.116) the
+// callback will sometimes be called without the set-cookie headers, even though
+// they were sent by the server. Interestingly, adding another listener that
+// always exists fixes it. I suspect there is a race, where the "extraHeaders"
+// property isn't yet applied to the listener when the response is received. The
+// current version uses a single global listener to avoid all those problems.
+
+let pendingRequests = [];
+
+chrome.webRequest.onHeadersReceived.addListener(
+    (details) => {
+        let hash = URL.parse(details.url).hash;
+        for (let {marker: marker, resolve: resolve} of pendingRequests) {
+            if (marker == hash) {
+                pendingRequests.splice(pendingRequests.findIndex(x => x.marker == marker), 1);
+                resolve(details.responseHeaders);
+                return;
+            }
+        }
+    },
+    {urls: ['https://www.google.com/ncr*']},
+    ['responseHeaders'],
+);
 
 async function fetchNewNIDCookie() {
     let headers = await new Promise((resolve, reject) => {
@@ -15,29 +39,18 @@ async function fetchNewNIDCookie() {
         let requestId = (Math.random() + 1).toString(36).substring(2);
         let marker = `#${chrome.runtime.id}-${requestId}`;
 
-        function onHeaders(details) {
-            if (URL.parse(details.url).hash != marker) return;
-
-            chrome.webRequest.onHeadersReceived.removeListener(onHeaders);
-            resolve(details.responseHeaders);
-        }
-
-        chrome.webRequest.onHeadersReceived.addListener(
-            onHeaders,
-            {urls: ['https://www.google.com/ncr*']},
-            ['responseHeaders'],
-        );
+        pendingRequests.push({marker: marker, resolve: resolve});
 
         fetch('https://www.google.com/ncr' + marker, {
             credentials: 'omit', // Anonymous request, don't send current cookies
             redirect: 'manual', // Don't follow the redirect to google.com
         }).catch(e => {
-            chrome.webRequest.onHeadersReceived.removeListener(onHeaders);
+            pendingRequests.splice(pendingRequests.findIndex(x => x.marker == marker), 1);
             reject(e);
         });
 
         setTimeout(() => {
-            chrome.webRequest.onHeadersReceived.removeListener(onHeaders);
+            pendingRequests.splice(pendingRequests.findIndex(x => x.marker == marker), 1);
             reject("Timeout");
         }, 30_000);
     });
