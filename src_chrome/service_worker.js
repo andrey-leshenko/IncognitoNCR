@@ -1,6 +1,3 @@
-// NOTE: When inspecting the incognito service worker, to reset the session we
-// need to close all incognito windows AND the incognito service worker devtools.
-
 let storePromise = chrome.storage.local.get().then((items) => {
     let store = { next_nid: null, allowed_in_incognito: false };
     Object.assign(store, items);
