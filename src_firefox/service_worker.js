@@ -30,6 +30,7 @@ async function fetchNewNIDCookie() {
 
         fetch('https://www.google.com/ncr' + marker, {
             credentials: 'omit', // Anonymous request, don't send current cookies
+            redirect: 'manual', // Don't follow the redirect to google.com
         }).catch(e => {
             chrome.webRequest.onHeadersReceived.removeListener(onHeaders);
             reject(e);
