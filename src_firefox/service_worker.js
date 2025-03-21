@@ -57,10 +57,10 @@ async function fetchNewNIDCookie() {
 
     for (let h of headers) {
         if (h.name != 'set-cookie') continue;
-        let match = /NID=([^; ]*)/.exec(h.value);
+        let match = /(__Secure-ENID|NID)=([^; ]*)/.exec(h.value);
         if (!match) continue;
 
-        return match[1];
+        return {name: match[1], value: match[2]};
     }
 
     throw new Error('NID cookie not found');
@@ -97,16 +97,19 @@ async function getNIDCookie() {
 
 async function __doNCR(override, storeId) {
     if (!override) {
-        let cookie = await chrome.cookies.get({storeId: storeId, name: 'NID', url: 'https://www.google.com'});
-        if (cookie !== null) return;
+        let cookies = await Promise.all([
+            chrome.cookies.get({storeId: storeId, name: 'NID', url: 'https://www.google.com'}),
+            chrome.cookies.get({storeId: storeId, name: '__Secure-ENID', url: 'https://www.google.com'}),
+        ]);
+        if (cookies.some(c => c !== null)) return;
     }
 
     let nid = await getNIDCookie();
 
     await chrome.cookies.set({
         storeId: storeId,
-        name: 'NID',
-        value: nid,
+        name: nid.name,
+        value: nid.value,
         url: 'https://www.google.com',
         domain: '.google.com',
         path: '/',
