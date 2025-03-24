@@ -71,7 +71,7 @@ async function getNIDCookie() {
     let store = await storePromise;
     let nid;
 
-    if (store.next_nid !== null) {
+    if (store.next_nid !== null && store.next_nid.name !== undefined) {
         console.log('Using prefetched cookie');
         nid = store.next_nid;
         store.next_nid = null;
